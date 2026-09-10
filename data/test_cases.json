@@ -1,0 +1,219 @@
+[
+  {
+    "id": "DOC-001",
+    "description": "Perfect match — everything correct",
+    "payload": {
+      "property_id": "PAR-MH-PUN-00012402",
+      "owner_name": "Rajesh Kumar",
+      "survey_no": "124/2",
+      "area": 2.50,
+      "village": "Wagholi"
+    },
+    "expected_status_code": 200,
+    "expected_decision": "AUTO_APPROVE",
+    "expected_flags": []
+  },
+  {
+    "id": "DOC-002",
+    "description": "OCR error on survey number (2 misread as Z)",
+    "payload": {
+      "property_id": "PAR-MH-PUN-00012402",
+      "owner_name": "Rajesh Kumar",
+      "survey_no": "124/Z",
+      "area": 2.50,
+      "village": "Wagholi"
+    },
+    "expected_status_code": 200,
+    "expected_decision": "HUMAN_REVIEW",
+    "expected_flags": ["SURVEY_NO_MISMATCH"]
+  },
+  {
+    "id": "DOC-003",
+    "description": "Owner name differs from LRMS",
+    "payload": {
+      "property_id": "PAR-MH-PUN-00012402",
+      "owner_name": "Rakesh Kumar",
+      "survey_no": "124/2",
+      "area": 2.50,
+      "village": "Wagholi"
+    },
+    "expected_status_code": 200,
+    "expected_decision": "HUMAN_REVIEW",
+    "expected_flags": ["OWNER_NAME_MISMATCH"]
+  },
+  {
+    "id": "DOC-004",
+    "description": "Area differs from LRMS",
+    "payload": {
+      "property_id": "PAR-MH-PUN-00012402",
+      "owner_name": "Rajesh Kumar",
+      "survey_no": "124/2",
+      "area": 5.20,
+      "village": "Wagholi"
+    },
+    "expected_status_code": 200,
+    "expected_decision": "HUMAN_REVIEW",
+    "expected_flags": ["AREA_MISMATCH"]
+  },
+  {
+    "id": "DOC-005",
+    "description": "Registration number does not exist",
+    "payload": {
+      "property_id": "PAR-MH-PUN-00012402",
+      "owner_name": "Rajesh Kumar",
+      "survey_no": "124/2",
+      "area": 2.50,
+      "village": "Wagholi",
+      "registration_no": "REG-9999-000000"
+    },
+    "expected_status_code": 200,
+    "expected_decision": "HUMAN_REVIEW",
+    "expected_flags": ["REGISTRATION_NO_NOT_FOUND"]
+  },
+  {
+    "id": "DOC-006",
+    "description": "Property does not exist in LRMS at all",
+    "payload": {
+      "property_id": "PAR-DOES-NOT-EXIST",
+      "owner_name": "Someone",
+      "survey_no": "1/1",
+      "area": 1.0,
+      "village": "Nowhere"
+    },
+    "expected_status_code": 404,
+    "expected_decision": null,
+    "expected_flags": []
+  },
+  {
+    "id": "DOC-007",
+    "description": "Property has an active mortgage",
+    "payload": {
+      "property_id": "PAR-MH-PUN-00012404",
+      "owner_name": "Vikram Patil",
+      "survey_no": "126/4",
+      "area": 3.00,
+      "village": "Kesnand"
+    },
+    "expected_status_code": 200,
+    "expected_decision": "HUMAN_REVIEW",
+    "expected_flags": ["ACTIVE_ENCUMBRANCE"]
+  },
+  {
+    "id": "DOC-008",
+    "description": "Mutation is still pending",
+    "payload": {
+      "property_id": "PAR-MH-PUN-00012403",
+      "owner_name": "Anita Sharma",
+      "survey_no": "125/1",
+      "area": 1.75,
+      "village": "Wagholi"
+    },
+    "expected_status_code": 200,
+    "expected_decision": "HUMAN_REVIEW",
+    "expected_flags": ["MUTATION_PENDING"]
+  },
+  {
+  "id": "DOC-009",
+  "description": "Missing owner name field entirely",
+  "payload": {
+    "property_id": "PAR-MH-PUN-00012402",
+    "owner_name": "",
+    "survey_no": "124/2",
+    "area": 2.50,
+    "village": "Wagholi"
+  },
+  "expected_status_code": 200,
+  "expected_decision": "HUMAN_REVIEW",
+  "expected_flags": ["OWNER_NAME_FIELD_MISSING"]
+  },
+  {
+    "id": "DOC-010",
+    "description": "Multiple inconsistencies at once",
+    "payload": {
+      "property_id": "PAR-MH-PUN-00012402",
+      "owner_name": "Wrong Name",
+      "survey_no": "999/9",
+      "area": 10.0,
+      "village": "Wrong Village"
+    },
+    "expected_status_code": 200,
+    "expected_decision": "HUMAN_REVIEW",
+    "expected_flags": ["OWNER_NAME_MISMATCH", "SURVEY_NO_MISMATCH", "AREA_MISMATCH", "VILLAGE_MISMATCH"]
+  },
+  {
+  "id": "DOC-011",
+  "description": "Sale date is after registration date (impossible sequence)",
+  "payload": {
+    "property_id": "PAR-MH-PUN-00012402",
+    "owner_name": "Rajesh Kumar",
+    "survey_no": "124/2",
+    "area": 2.50,
+    "village": "Wagholi",
+    "sale_date": "2024-09-01",
+    "registration_date": "2024-08-15"
+  },
+  "expected_status_code": 200,
+  "expected_decision": "HUMAN_REVIEW",
+  "expected_flags": ["SALE_DATE_AFTER_REGISTRATION_DATE"]
+},
+{
+  "id": "DOC-012",
+  "description": "Owner shares exceed 100%",
+  "payload": {
+    "property_id": "PAR-MH-PUN-00012402",
+    "owner_name": "Rajesh Kumar",
+    "survey_no": "124/2",
+    "area": 2.50,
+    "village": "Wagholi",
+    "owner_shares": [60, 60]
+  },
+  "expected_status_code": 200,
+  "expected_decision": "HUMAN_REVIEW",
+  "expected_flags": ["OWNER_SHARE_EXCEEDS_100_PERCENT"]
+},
+{
+  "id": "DOC-013",
+  "description": "Dates are consistent and valid — no cross-field issues",
+  "payload": {
+    "property_id": "PAR-MH-PUN-00012402",
+    "owner_name": "Rajesh Kumar",
+    "survey_no": "124/2",
+    "area": 2.50,
+    "village": "Wagholi",
+    "sale_date": "2024-08-10",
+    "registration_date": "2024-08-15",
+    "owner_shares": [50, 50]
+  },
+  "expected_status_code": 200,
+  "expected_decision": "AUTO_APPROVE",
+  "expected_flags": []
+},
+{
+  "id": "DOC-014",
+  "description": "Area is negative — invalid on its own terms",
+  "payload": {
+    "property_id": "PAR-MH-PUN-00012402",
+    "owner_name": "Rajesh Kumar",
+    "survey_no": "124/2",
+    "area": -5.0,
+    "village": "Wagholi"
+  },
+  "expected_status_code": 200,
+  "expected_decision": "HUMAN_REVIEW",
+  "expected_flags": ["AREA_AREA_NOT_POSITIVE"]
+},
+{
+  "id": "DOC-015",
+  "description": "Survey number has no digits — clearly malformed OCR output",
+  "payload": {
+    "property_id": "PAR-MH-PUN-00012402",
+    "owner_name": "Rajesh Kumar",
+    "survey_no": "ABC",
+    "area": 2.50,
+    "village": "Wagholi"
+  },
+  "expected_status_code": 200,
+  "expected_decision": "HUMAN_REVIEW",
+  "expected_flags": ["SURVEY_NO_SURVEY_NO_FORMAT_INVALID"]
+}
+]

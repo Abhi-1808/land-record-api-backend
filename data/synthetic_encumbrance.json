@@ -1,0 +1,13 @@
+[
+  {
+    "property_id": "PAR-MH-PUN-00012404",
+    "encumbrances": [
+      {
+        "type": "MORTGAGE",
+        "institution": "Synthetic State Bank",
+        "reference_no": "MORT-2023-00882",
+        "status": "ACTIVE"
+      }
+    ]
+  }
+]

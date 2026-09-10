@@ -1,0 +1,24 @@
+[
+  {
+    "registration_no": "REG-2024-009812",
+    "registration_date": "2024-08-15",
+    "document_type": "SALE_DEED",
+    "property_id": "PAR-MH-PUN-00012402",
+    "survey_no": "124/2",
+    "seller": { "owner_id": "OWN-000125", "name": "Suresh Kumar" },
+    "buyer": { "owner_id": "OWN-000123", "name": "Rajesh Kumar" },
+    "consideration_amount": 1850000,
+    "status": "REGISTERED"
+  },
+  {
+    "registration_no": "REG-2023-004521",
+    "registration_date": "2023-03-10",
+    "document_type": "SALE_DEED",
+    "property_id": "PAR-MH-PUN-00012403",
+    "survey_no": "125/1",
+    "seller": { "owner_id": "OWN-000201", "name": "Ramesh Sharma" },
+    "buyer": { "owner_id": "OWN-000200", "name": "Anita Sharma" },
+    "consideration_amount": 950000,
+    "status": "REGISTERED"
+  }
+]

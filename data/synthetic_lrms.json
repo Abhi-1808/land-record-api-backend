@@ -1,0 +1,45 @@
+[
+  {
+    "property_id": "PAR-MH-PUN-00012402",
+    "survey_no": "124/2",
+    "state": "Maharashtra",
+    "district": "Pune",
+    "tehsil": "Haveli",
+    "village": "Wagholi",
+    "area": 2.50,
+    "area_unit": "Acre",
+    "owners": [
+      { "owner_id": "OWN-000123", "name": "Rajesh Kumar", "share_percent": 50 },
+      { "owner_id": "OWN-000124", "name": "Priya Kumar", "share_percent": 50 }
+    ],
+    "status": "ACTIVE"
+  },
+  {
+    "property_id": "PAR-MH-PUN-00012403",
+    "survey_no": "125/1",
+    "state": "Maharashtra",
+    "district": "Pune",
+    "tehsil": "Haveli",
+    "village": "Wagholi",
+    "area": 1.75,
+    "area_unit": "Acre",
+    "owners": [
+      { "owner_id": "OWN-000200", "name": "Anita Sharma", "share_percent": 100 }
+    ],
+    "status": "ACTIVE"
+  },
+  {
+    "property_id": "PAR-MH-PUN-00012404",
+    "survey_no": "126/4",
+    "state": "Maharashtra",
+    "district": "Pune",
+    "tehsil": "Haveli",
+    "village": "Kesnand",
+    "area": 3.00,
+    "area_unit": "Acre",
+    "owners": [
+      { "owner_id": "OWN-000300", "name": "Vikram Patil", "share_percent": 100 }
+    ],
+    "status": "ACTIVE"
+  }
+]

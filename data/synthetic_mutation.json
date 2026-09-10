@@ -1,0 +1,22 @@
+[
+  {
+    "mutation_no": "MUT-2025-00451",
+    "registration_no": "REG-2024-009812",
+    "property_id": "PAR-MH-PUN-00012402",
+    "mutation_type": "SALE",
+    "mutation_date": "2025-01-12",
+    "previous_owner": "Suresh Kumar",
+    "new_owner": "Rajesh Kumar",
+    "status": "SANCTIONED"
+  },
+  {
+    "mutation_no": "MUT-2023-00112",
+    "registration_no": "REG-2023-004521",
+    "property_id": "PAR-MH-PUN-00012403",
+    "mutation_type": "SALE",
+    "mutation_date": "2023-04-01",
+    "previous_owner": "Ramesh Sharma",
+    "new_owner": "Anita Sharma",
+    "status": "PENDING"
+  }
+]
