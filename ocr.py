@@ -1,8 +1,5 @@
 import os
 from enum import Enum
-from easyocr import Reader
-from pdf2image import convert_from_path
-import numpy as np
 
 
 class OCRLanguage(str, Enum):
@@ -24,7 +21,9 @@ LANGUAGE_GROUPS = {
 _reader_cache = {}
 
 
-def get_reader(language: OCRLanguage) -> Reader:
+def get_reader(language: OCRLanguage):
+    from easyocr import Reader
+
     if language not in _reader_cache:
         print(f"[OCR] Loading model for '{language.value}' (first time only)...")
         _reader_cache[language] = Reader(LANGUAGE_GROUPS[language], gpu=False)
@@ -37,6 +36,9 @@ def extract_text_from_pdf(pdf_path: str, language: OCRLanguage = OCRLanguage.eng
     runs EasyOCR (using the selected language model) on each page,
     and returns all extracted text.
     """
+
+    from pdf2image import convert_from_path
+    import numpy as np
 
     print(f"[OCR] Starting PDF processing (language: {language.value})...")
 
