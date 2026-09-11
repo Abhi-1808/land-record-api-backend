@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 from mock_apis import router as mock_apis_router
 from verification import router as verification_router
+from database import case_collection, verification_logs_collection
 
 app = FastAPI()
 app.include_router(mock_apis_router)
@@ -29,6 +30,9 @@ def run():
     failed = 0
 
     for case in test_cases:
+        for collection in (case_collection, verification_logs_collection):
+            if hasattr(collection, "_documents"):
+                collection._documents.clear()
         response = client.post("/api/verification/document", json=case["payload"])
         actual_status = response.status_code
 

@@ -1,14 +1,18 @@
 import json
 import os
+from uuid import uuid4
 from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 
-from rules_engine import compare_field, run_business_rules, run_cross_field_checks, run_additional_business_rules, decide_outcome
-from database import verification_logs_collection
+from rules_engine import calculate_overall_confidence, compare_field, run_business_rules, run_cross_field_checks, run_additional_business_rules, decide_outcome, validate_gis_geometry
+from database import case_collection, verification_logs_collection
+from duplicate_engine import find_duplicate_candidates
+from blockchain import commit_review_decision
 
 router = APIRouter(prefix="/api/verification", tags=["verification"])
+case_router = APIRouter(prefix="/api/v1/verification", tags=["verification-cases"])
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 
@@ -48,6 +52,11 @@ def find_encumbrance(property_id: str):
     return False
 
 
+def find_gis_parcel(property_id: str):
+    records = load_json("synthetic_gis.json")
+    return records.get(property_id)
+
+
 class ExtractedFields(BaseModel):
     property_id: str
     owner_name: Optional[str] = None
@@ -65,6 +74,34 @@ class ExtractedFields(BaseModel):
     claimed_previous_owner: Optional[str] = None
 
 
+class ReviewAction(BaseModel):
+    reviewer_id: str
+    reason: str
+
+
+def _as_dict(fields: ExtractedFields) -> dict:
+    return fields.model_dump() if hasattr(fields, "model_dump") else fields.dict()
+
+
+def _save_case(result: dict, fields: ExtractedFields) -> str:
+    case_id = str(uuid4())
+    if result["decision"] == "AUTO_APPROVE":
+        status = "AUTO_APPROVED"
+    elif result["decision"] == "REJECT":
+        status = "REJECTED"
+    else:
+        status = "HUMAN_REVIEW_REQUIRED"
+    case_collection.insert_one({
+        "case_id": case_id,
+        "status": status,
+        "property_id": fields.property_id,
+        "extracted_fields": _as_dict(fields),
+        "audit_bundle": result,
+        "created_at": datetime.utcnow(),
+    })
+    return case_id
+
+
 @router.post("/document")
 def verify_document(fields: ExtractedFields):
     lrms_record = find_lrms_property(fields.property_id)
@@ -72,7 +109,7 @@ def verify_document(fields: ExtractedFields):
     if lrms_record is None:
         verification_logs_collection.insert_one({
             "property_id": fields.property_id,
-            "input_fields": fields.dict(),
+            "input_fields": _as_dict(fields),
             "result": "PROPERTY_NOT_FOUND",
             "timestamp": datetime.utcnow()
         })
@@ -128,7 +165,25 @@ def verify_document(fields: ExtractedFields):
     flags.extend(additional_flags)
     flags.extend(cross_field_flags)
 
+    gis_record = find_gis_parcel(fields.property_id)
+    gis_validation = validate_gis_geometry(gis_record, lrms_record.get("area"))
+    if gis_validation["flag"]:
+        flags.append(gis_validation["flag"])
+
+    historical_records = (
+        verification_logs_collection.all()
+        if hasattr(verification_logs_collection, "all")
+        else list(verification_logs_collection.find({}))
+    )
+    historical_records = [
+        {**record.get("input_fields", {}), "property_id": record.get("property_id")}
+        for record in historical_records
+    ]
+    duplicate_candidates = find_duplicate_candidates(_as_dict(fields), historical_records)
+    flags.extend(candidate["flag"] for candidate in duplicate_candidates[:1])
+
     outcome = decide_outcome(flags, field_results)
+    overall_confidence = calculate_overall_confidence(field_results)
 
     result = {
         "property_id": fields.property_id,
@@ -138,14 +193,59 @@ def verify_document(fields: ExtractedFields):
         "flags": flags,
         "decision": outcome["decision"],
         "review_reason": outcome["reason"]
+        ,"overall_confidence": overall_confidence
+        ,"gis_validation": gis_validation
+        ,"duplicate_candidates": duplicate_candidates
     }
 
     log_entry = {
         **result,
-        "input_fields": fields.dict(),
+        "input_fields": _as_dict(fields),
         "timestamp": datetime.utcnow()
     }
     log_result = verification_logs_collection.insert_one(log_entry)
     result["log_id"] = str(log_result.inserted_id)
+    result["case_id"] = _save_case(result, fields)
 
     return result
+
+
+@case_router.get("/cases")
+def list_cases(status: Optional[str] = None):
+    cases = case_collection.all() if hasattr(case_collection, "all") else list(case_collection.find({}))
+    if status:
+        cases = [case for case in cases if case.get("status") == status]
+    return [{**case, "_id": str(case["_id"])} for case in cases]
+
+
+@case_router.get("/cases/{case_id}")
+def get_case(case_id: str):
+    case = case_collection.find_one({"case_id": case_id})
+    if not case:
+        raise HTTPException(status_code=404, detail="Verification case not found")
+    return {**case, "_id": str(case["_id"])}
+
+
+def _review_case(case_id: str, action: ReviewAction, status: str):
+    case = case_collection.find_one({"case_id": case_id})
+    if not case:
+        raise HTTPException(status_code=404, detail="Verification case not found")
+    chain_result = commit_review_decision(case_id, status, action.reviewer_id, action.reason)
+    review = {
+        "reviewer_id": action.reviewer_id,
+        "review_reason": action.reason,
+        "reviewed_at": datetime.utcnow(),
+        "blockchain": chain_result,
+    }
+    case_collection.update_one({"case_id": case_id}, {"$set": {"status": status, "review": review}})
+    return {**case, "status": status, "review": review, "_id": str(case["_id"])}
+
+
+@case_router.post("/cases/{case_id}/approve")
+def approve_case(case_id: str, action: ReviewAction):
+    return _review_case(case_id, action, "MANUALLY_APPROVED")
+
+
+@case_router.post("/cases/{case_id}/reject")
+def reject_case(case_id: str, action: ReviewAction):
+    return _review_case(case_id, action, "REJECTED")

@@ -63,3 +63,46 @@ def register_land_on_chain(
         raise RuntimeError("Blockchain registration transaction failed")
 
     return web3.to_hex(transaction_hash)
+
+
+def commit_review_decision(case_id: str, decision: str, reviewer_id: str, reason: str) -> dict:
+    """Commit a reviewer decision as a unique, auditable registry record."""
+    decision_payload = f"{case_id}|{decision}|{reviewer_id}|{reason}"
+    decision_hash = hashlib.sha256(decision_payload.encode("utf-8")).hexdigest()
+    private_key = os.getenv("BLOCKCHAIN_PRIVATE_KEY") or os.getenv("PRIVATE_KEY")
+    if not private_key:
+        return {"decision_hash": decision_hash, "transaction_hash": None, "status": "OFFLINE"}
+
+    try:
+        with CONFIG_PATH.open(encoding="utf-8") as config_file:
+            contract_config = json.load(config_file)
+        web3 = Web3(Web3.HTTPProvider(os.getenv("BLOCKCHAIN_RPC_URL", DEFAULT_RPC_URL)))
+        if not web3.is_connected():
+            return {"decision_hash": decision_hash, "transaction_hash": None, "status": "OFFLINE"}
+        account = web3.eth.account.from_key(private_key)
+        contract = web3.eth.contract(
+            address=Web3.to_checksum_address(contract_config["address"]),
+            abi=contract_config["abi"],
+        )
+        parcel_id = f"REVIEW-{case_id}"[:64]
+        tx = contract.functions.registerRecord(
+            parcel_id,
+            bytes.fromhex(decision_hash),
+            f"decision:{decision_hash}",
+        ).build_transaction({
+            "from": account.address,
+            "nonce": web3.eth.get_transaction_count(account.address),
+            "chainId": web3.eth.chain_id,
+            "gas": 500_000,
+            "gasPrice": web3.eth.gas_price,
+        })
+        signed = account.sign_transaction(tx)
+        tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
+        receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
+        return {
+            "decision_hash": decision_hash,
+            "transaction_hash": web3.to_hex(tx_hash),
+            "status": "COMMITTED" if receipt.status == 1 else "FAILED",
+        }
+    except Exception as error:
+        return {"decision_hash": decision_hash, "transaction_hash": None, "status": "FAILED", "error": str(error)}

@@ -28,12 +28,24 @@ class InMemoryCollection:
 		if document:
 			document.update(update.get("$set", {}))
 
+	def find(self, query=None):
+		query = query or {}
+		return [
+			document for document in self._documents
+			if all(document.get(key) == value for key, value in query.items())
+		]
+
+	def all(self):
+		return list(self._documents)
+
 
 if MONGODB_URI and "your_mongodb_connection_string" not in MONGODB_URI:
 	client = MongoClient(MONGODB_URI, tlsCAFile=certifi.where())
 	db = client["land_record_db"]
 	documents_collection = db["documents"]
 	verification_logs_collection = db["verification_logs"]
+	case_collection = db["verification_cases"]
 else:
 	documents_collection = InMemoryCollection()
 	verification_logs_collection = InMemoryCollection()
+	case_collection = InMemoryCollection()

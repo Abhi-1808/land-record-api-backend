@@ -25,7 +25,7 @@
     },
     "expected_status_code": 200,
     "expected_decision": "HUMAN_REVIEW",
-    "expected_flags": ["SURVEY_NO_MISMATCH"]
+    "expected_flags": ["SURVEY_NO_LOW_CONFIDENCE"]
   },
   {
     "id": "DOC-003",
@@ -38,8 +38,8 @@
       "village": "Wagholi"
     },
     "expected_status_code": 200,
-    "expected_decision": "HUMAN_REVIEW",
-    "expected_flags": ["OWNER_NAME_MISMATCH"]
+    "expected_decision": "AUTO_APPROVE",
+    "expected_flags": []
   },
   {
     "id": "DOC-004",
@@ -52,7 +52,7 @@
       "village": "Wagholi"
     },
     "expected_status_code": 200,
-    "expected_decision": "HUMAN_REVIEW",
+    "expected_decision": "REJECT",
     "expected_flags": ["AREA_MISMATCH"]
   },
   {
@@ -67,7 +67,7 @@
       "registration_no": "REG-9999-000000"
     },
     "expected_status_code": 200,
-    "expected_decision": "HUMAN_REVIEW",
+    "expected_decision": "REJECT",
     "expected_flags": ["REGISTRATION_NO_NOT_FOUND"]
   },
   {
@@ -96,7 +96,7 @@
     },
     "expected_status_code": 200,
     "expected_decision": "HUMAN_REVIEW",
-    "expected_flags": ["ACTIVE_ENCUMBRANCE"]
+    "expected_flags": ["ACTIVE_ENCUMBRANCE", "GIS_GEOMETRY_MISMATCH"]
   },
   {
     "id": "DOC-008",
@@ -110,7 +110,7 @@
     },
     "expected_status_code": 200,
     "expected_decision": "HUMAN_REVIEW",
-    "expected_flags": ["MUTATION_PENDING"]
+    "expected_flags": ["MUTATION_PENDING", "GIS_GEOMETRY_MISMATCH"]
   },
   {
   "id": "DOC-009",
@@ -123,7 +123,7 @@
     "village": "Wagholi"
   },
   "expected_status_code": 200,
-  "expected_decision": "HUMAN_REVIEW",
+  "expected_decision": "REJECT",
   "expected_flags": ["OWNER_NAME_FIELD_MISSING"]
   },
   {
@@ -137,7 +137,7 @@
       "village": "Wrong Village"
     },
     "expected_status_code": 200,
-    "expected_decision": "HUMAN_REVIEW",
+      "expected_decision": "REJECT",
     "expected_flags": ["OWNER_NAME_MISMATCH", "SURVEY_NO_MISMATCH", "AREA_MISMATCH", "VILLAGE_MISMATCH"]
   },
   {
@@ -153,7 +153,7 @@
     "registration_date": "2024-08-15"
   },
   "expected_status_code": 200,
-  "expected_decision": "HUMAN_REVIEW",
+    "expected_decision": "HUMAN_REVIEW",
   "expected_flags": ["SALE_DATE_AFTER_REGISTRATION_DATE"]
 },
 {
@@ -168,7 +168,7 @@
     "owner_shares": [60, 60]
   },
   "expected_status_code": 200,
-  "expected_decision": "HUMAN_REVIEW",
+    "expected_decision": "HUMAN_REVIEW",
   "expected_flags": ["OWNER_SHARE_EXCEEDS_100_PERCENT"]
 },
 {
@@ -199,7 +199,7 @@
     "village": "Wagholi"
   },
   "expected_status_code": 200,
-  "expected_decision": "HUMAN_REVIEW",
+  "expected_decision": "REJECT",
   "expected_flags": ["AREA_AREA_NOT_POSITIVE"]
 },
 {
@@ -213,7 +213,7 @@
     "village": "Wagholi"
   },
   "expected_status_code": 200,
-  "expected_decision": "HUMAN_REVIEW",
+    "expected_decision": "REJECT",
   "expected_flags": ["SURVEY_NO_SURVEY_NO_FORMAT_INVALID"]
 }
 ]

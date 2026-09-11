@@ -1,6 +1,36 @@
 from datetime import datetime
 from typing import Optional
 
+from rapidfuzz import fuzz
+from shapely.geometry import shape
+
+
+FIELD_WEIGHTS = {
+    "owner_name": 0.35,
+    "survey_no": 0.35,
+    "area": 0.15,
+    "village": 0.15,
+}
+
+
+def _similarity(extracted_value, authoritative_value, tolerance: float) -> float:
+    if extracted_value is None or authoritative_value is None:
+        return 0.0
+    if isinstance(extracted_value, (int, float)) and isinstance(authoritative_value, (int, float)):
+        difference = abs(float(extracted_value) - float(authoritative_value))
+        if difference <= tolerance:
+            return 1.0
+        return max(0.0, 1.0 - difference / max(abs(float(authoritative_value)), 1.0))
+    return fuzz.token_sort_ratio(str(extracted_value), str(authoritative_value)) / 100
+
+
+def _confidence_status(score: float) -> str:
+    if score >= 0.90:
+        return "MATCH"
+    if score >= 0.70:
+        return "LOW_CONFIDENCE"
+    return "MISMATCH"
+
 
 def validate_field_format(field_name: str, value) -> Optional[str]:
     """
@@ -50,6 +80,10 @@ def compare_field(field_name: str, extracted_value, authoritative_value, toleran
             "field": field_name,
             "extracted": extracted_value,
             "authoritative": authoritative_value,
+            "extracted_value": extracted_value,
+            "verified_value": authoritative_value,
+            "confidence_score": 0.0,
+            "field_status": "MISMATCH",
             "status": "VERIFICATION_UNAVAILABLE",
             "issue": "FIELD_MISSING"
         }
@@ -59,6 +93,10 @@ def compare_field(field_name: str, extracted_value, authoritative_value, toleran
             "field": field_name,
             "extracted": extracted_value,
             "authoritative": authoritative_value,
+            "extracted_value": extracted_value,
+            "verified_value": authoritative_value,
+            "confidence_score": 0.0,
+            "field_status": "MISMATCH",
             "status": "VERIFICATION_UNAVAILABLE",
             "issue": format_error
         }
@@ -68,22 +106,40 @@ def compare_field(field_name: str, extracted_value, authoritative_value, toleran
             "field": field_name,
             "extracted": extracted_value,
             "authoritative": authoritative_value,
+            "extracted_value": extracted_value,
+            "verified_value": authoritative_value,
+            "confidence_score": 0.0,
+            "field_status": "MISMATCH",
             "status": "NOT_FOUND",
             "issue": None
         }
 
-    if isinstance(extracted_value, (int, float)) and isinstance(authoritative_value, (int, float)):
-        is_match = abs(extracted_value - authoritative_value) <= tolerance
-    else:
-        is_match = str(extracted_value).strip().lower() == str(authoritative_value).strip().lower()
+    confidence_score = _similarity(extracted_value, authoritative_value, tolerance)
+    field_status = _confidence_status(confidence_score)
 
     return {
         "field": field_name,
         "extracted": extracted_value,
         "authoritative": authoritative_value,
-        "status": "VERIFIED" if is_match else "MISMATCH",
+        "extracted_value": extracted_value,
+        "verified_value": authoritative_value,
+        "confidence_score": round(confidence_score, 4),
+        "field_status": field_status,
+        "status": "VERIFIED" if field_status == "MATCH" else "MISMATCH",
         "issue": None
     }
+
+
+def calculate_overall_confidence(field_results: list, weights: Optional[dict] = None) -> float:
+    weights = weights or FIELD_WEIGHTS
+    weighted_score = 0.0
+    total_weight = 0.0
+    for result in field_results:
+        field_name = result["field"]
+        if field_name in weights:
+            weighted_score += result.get("confidence_score", 0.0) * weights[field_name]
+            total_weight += weights[field_name]
+    return round(weighted_score / total_weight, 4) if total_weight else 0.0
 
 
 def parse_date(date_str: str) -> Optional[datetime]:
@@ -138,12 +194,15 @@ def run_business_rules(field_results: list, encumbrance_active: bool = False, mu
 
     for result in field_results:
         status = result["status"]
-        if status == "MISMATCH":
-            flags.append(f"{result['field'].upper()}_MISMATCH")
-        elif status == "VERIFICATION_UNAVAILABLE":
+        field_status = result.get("field_status")
+        if status == "VERIFICATION_UNAVAILABLE":
             flags.append(f"{result['field'].upper()}_{result.get('issue', 'UNAVAILABLE')}")
         elif status == "NOT_FOUND":
             flags.append(f"{result['field'].upper()}_NOT_FOUND")
+        elif field_status == "LOW_CONFIDENCE":
+            flags.append(f"{result['field'].upper()}_LOW_CONFIDENCE")
+        elif field_status == "MISMATCH" or status == "MISMATCH":
+            flags.append(f"{result['field'].upper()}_MISMATCH")
 
     if encumbrance_active:
         flags.append("ACTIVE_ENCUMBRANCE")
@@ -158,7 +217,33 @@ def decide_outcome(flags: list, field_results: list) -> dict:
     if not flags:
         return {"decision": "AUTO_APPROVE", "reason": []}
 
+    if any(result.get("field_status") == "MISMATCH" for result in field_results):
+        return {"decision": "REJECT", "reason": flags}
     return {"decision": "HUMAN_REVIEW", "reason": flags}
+
+
+def validate_gis_geometry(gis_record: Optional[dict], authoritative_area_acres: Optional[float] = None) -> dict:
+    if not gis_record:
+        return {"valid": False, "area_acres": None, "flag": "GIS_GEOMETRY_MISMATCH", "reason": "GIS record not found"}
+    try:
+        geometry = shape({"type": gis_record["type"], "coordinates": gis_record["coordinates"]})
+    except (KeyError, TypeError, ValueError) as error:
+        return {"valid": False, "area_acres": None, "flag": "GIS_GEOMETRY_MISMATCH", "reason": str(error)}
+
+    # Approximate WGS84 polygon area in acres for the synthetic local dataset.
+    centroid_lat = geometry.centroid.y
+    square_meters = geometry.area * (111_320 ** 2) * max(0.01, abs(__import__("math").cos(__import__("math").radians(centroid_lat))))
+    area_acres = square_meters * 0.000247105
+    area_matches = authoritative_area_acres is None or abs(area_acres - authoritative_area_acres) <= 0.01
+    valid = geometry.is_valid and area_matches
+    return {
+        "valid": valid,
+        "area_acres": round(area_acres, 4),
+        "geometry_valid": geometry.is_valid,
+        "area_matches": area_matches,
+        "flag": None if valid else "GIS_GEOMETRY_MISMATCH",
+        "reason": None if valid else "Invalid topology or area outside tolerance",
+    }
 def run_additional_business_rules(
     property_status: Optional[str] = None,
     seller_name: Optional[str] = None,

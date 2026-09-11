@@ -38,3 +38,16 @@ def get_mutation(mutation_no: str):
         if record["mutation_no"] == mutation_no:
             return record
     raise HTTPException(status_code=404, detail="Mutation not found")
+
+
+@router.get("/v1/gis/parcels/{parcel_id}")
+def get_gis_parcel(parcel_id: str):
+    records = load_json("synthetic_gis.json")
+    record = records.get(parcel_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="GIS parcel not found")
+
+    from rules_engine import validate_gis_geometry
+
+    validation = validate_gis_geometry(record)
+    return {**record, "computed_area_acres": validation["area_acres"], "spatial_validation": validation}

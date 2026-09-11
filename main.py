@@ -6,7 +6,7 @@ import os
 import tempfile
 from datetime import datetime
 from mock_apis import router as mock_apis_router
-from verification import router as verification_router
+from verification import case_router, router as verification_router
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 
@@ -19,6 +19,7 @@ from ocr import extract_text_from_pdf, OCRLanguage
 app = FastAPI()
 app.include_router(mock_apis_router)
 app.include_router(verification_router)
+app.include_router(case_router)
 
 @app.get("/")
 def read_root():
