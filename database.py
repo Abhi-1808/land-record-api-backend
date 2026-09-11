@@ -45,7 +45,9 @@ if MONGODB_URI and "your_mongodb_connection_string" not in MONGODB_URI:
 	documents_collection = db["documents"]
 	verification_logs_collection = db["verification_logs"]
 	case_collection = db["verification_cases"]
+	credential_collection = db["verifiable_credentials"]
 else:
 	documents_collection = InMemoryCollection()
 	verification_logs_collection = InMemoryCollection()
 	case_collection = InMemoryCollection()
+	credential_collection = InMemoryCollection()

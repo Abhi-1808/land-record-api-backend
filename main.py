@@ -7,6 +7,8 @@ import tempfile
 from datetime import datetime
 from mock_apis import router as mock_apis_router
 from verification import case_router, router as verification_router
+from orchestrator import router as agentic_router
+from credential_engine import router as credential_router
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 
@@ -20,6 +22,8 @@ app = FastAPI()
 app.include_router(mock_apis_router)
 app.include_router(verification_router)
 app.include_router(case_router)
+app.include_router(agentic_router)
+app.include_router(credential_router)
 
 @app.get("/")
 def read_root():
