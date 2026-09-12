@@ -64,7 +64,7 @@ def _proof(credential: dict) -> dict:
         "created": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "proofPurpose": "assertionMethod",
         "verificationMethod": f"{issuer}#key-1",
-        "jws": _b64(signature),
+        "jws": _b64(signature), 
     }
 
 

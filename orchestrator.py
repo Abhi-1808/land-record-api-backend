@@ -70,3 +70,10 @@ def agentic_verify(fields: ExtractedFields):
         "audit_bundle": result,
         "agent_trace": trace,
     }
+#Incoming Upload 
+  #──► Validate Bytes (main.py)
+ # ──► Duplicate Check (duplicate_engine.py)
+  #──► Store in Cloud (storage.py)
+ # ──► Verify Rules / OCR (rules_engine.py / ocr.py)
+  #──► Register on Blockchain (blockchain.py)
+  #──► Save to MongoDB (database.py)

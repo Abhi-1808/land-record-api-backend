@@ -1,5 +1,9 @@
 {
+  "network": "localhost",
+  "chainId": 31337,
+  "contract_address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
   "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "deployed_at": "2026-09-12T06:22:35.958483+00:00",
   "abi": [
     {
       "inputs": [

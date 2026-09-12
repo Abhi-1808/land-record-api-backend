@@ -24,3 +24,14 @@ def upload_file(file_bytes: bytes, filename: str, folder: str = "land_records") 
         unique_filename=False
     )
     return result.get("secure_url")
+
+import cloudinary.uploader
+
+def upload_document_to_cloud(file_bytes: bytes, filename: str):
+    # Uploads raw bytes to Cloudinary
+    response = cloudinary.uploader.upload(
+        file_bytes,
+        resource_type="auto",
+        folder="land_records"
+    )
+    return response.get("secure_url")

@@ -47,3 +47,14 @@ def find_duplicate_candidates(extracted: dict, historical_records: Iterable[dict
         if result["flag"]:
             candidates.append({"property_id": record.get("property_id"), **result})
     return sorted(candidates, key=lambda item: item["score"], reverse=True)
+
+from database import db
+
+async def check_for_duplicates(parcel_id: str, document_hash: str):
+    existing = await db.records.find_one({
+        "$or": [
+            {"parcel_id": parcel_id},
+            {"document_hash": document_hash}
+        ]
+    })
+    return existing is not None
