@@ -1,6 +1,6 @@
 # 🏛️ Immutable Land Record Registry
 
-A high-assurance, tamper-evident land record registry built on Ethereum-compatible blockchain infrastructure using **Solidity 0.8.36**, **Hardhat 3**, **Viem**, and **OpenZeppelin Contracts 5.x**.
+A high-assurance, tamper-evident land record registry built on Ethereum-compatible blockchain infrastructure using **Solidity 0.8.20**, **Hardhat 3**, **Viem**, and **OpenZeppelin Contracts 5.x**.
 
 The system is designed to provide a secure and auditable mechanism for registering, verifying, versioning, and revoking land records while keeping the original documents off-chain.
 
@@ -954,7 +954,7 @@ Run:
 npm run deploy:local
 ```
 
-After deployment, a `deployment.json` file is generated locally.
+After deployment, a `deployment.json` file is generated locally and the ABI/address configuration is exported to the sibling API repository. In the merged platform repository, the export targets the repository root automatically.
 
 ---
 
