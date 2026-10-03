@@ -1,4 +1,5 @@
 import { network } from "hardhat";
+import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 
@@ -43,7 +44,10 @@ async function main() {
   await writeFile("deployment.json", JSON.stringify(deploymentData, null, 2));
   console.log("Deployment manifest saved to deployment.json");
 
-  const backendDir = path.resolve(process.cwd(), "..", "land-record-api-main");
+  const repositoryRoot = path.resolve(process.cwd(), "..");
+  const backendDir = existsSync(path.join(repositoryRoot, "main.py"))
+    ? repositoryRoot
+    : path.resolve(repositoryRoot, "land-record-api-main");
   const artifactPath = path.resolve(
     process.cwd(),
     "artifacts/contracts/Land_record.sol/LandRecord.json",
