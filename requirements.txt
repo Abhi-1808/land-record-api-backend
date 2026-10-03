@@ -1,19 +1,41 @@
-certifi
-cloudinary
-cryptography
-easyocr
-faker
+# Core API
 fastapi
-httpx2
-numpy
-pandas
-pdf2image
-pillow
-pymongo
-pypdf
-python-dotenv
+uvicorn[standard]
 python-multipart
+python-dotenv
+pydantic
+
+# Database
+pymongo
+certifi
+
+# Object storage
+cloudinary
+
+# Blockchain
+web3
+
+# Cryptography (Ed25519 VC signatures)
+cryptography
+
+# OCR pipeline
+easyocr
+pdf2image
+pypdf
+pillow
+numpy
+
+# Rule engine
 rapidfuzz
 shapely
-uvicorn
-web3
+
+# File type detection (magic bytes)
+python-magic
+
+# Test / data generation
+faker
+httpx
+pandas
+
+# Spatial
+scipy

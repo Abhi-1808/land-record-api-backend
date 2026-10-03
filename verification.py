@@ -301,7 +301,7 @@ def run_verification_engine(payload: Optional[Dict[str, Any]] = None, is_legacy_
         for expected in lrms_owners:
             name_str = expected.get("name") if isinstance(expected, dict) else str(expected)
             sim = string_similarity(owner_name, name_str)
-            if sim >= 0.65 or owner_name.lower() in name_str.lower() or name_str.lower() in owner_name.lower():
+            if sim >= 0.88 or owner_name.lower() in name_str.lower() or name_str.lower() in owner_name.lower():
                 matched = True
                 break
 

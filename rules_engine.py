@@ -5,6 +5,59 @@ from rapidfuzz import fuzz
 from shapely.geometry import shape
 
 
+# ---------------------------------------------------------------------------
+# Area unit normalisation
+# All values are in square metres so comparisons are always unit-agnostic.
+# ---------------------------------------------------------------------------
+_AREA_TO_SQM: dict[str, float] = {
+    # metric
+    "sqm": 1.0,
+    "sq_m": 1.0,
+    "m2": 1.0,
+    "square meter": 1.0,
+    "square meters": 1.0,
+    "square metre": 1.0,
+    "square metres": 1.0,
+    "hectare": 10_000.0,
+    "hectares": 10_000.0,
+    "ha": 10_000.0,
+    # imperial / common Indian
+    "acre": 4_046.86,
+    "acres": 4_046.86,
+    "ac": 4_046.86,
+    "sqft": 0.092_903,
+    "sq_ft": 0.092_903,
+    "sq.ft": 0.092_903,
+    "square feet": 0.092_903,
+    "square foot": 0.092_903,
+    "sqyd": 0.836_127,
+    "sq_yd": 0.836_127,
+    "square yard": 0.836_127,
+    "square yards": 0.836_127,
+    # traditional Indian units (approximate)
+    "bigha": 1_337.8,      # UP bigha — varies by state; configure per deployment
+    "katha": 66.89,
+    "marla": 25.29,
+    "cent": 40.47,
+    "guntha": 101.17,
+}
+
+
+def normalise_area_sqm(value: float, unit: Optional[str]) -> Optional[float]:
+    """Convert *value* expressed in *unit* to square metres.
+
+    Returns None if the unit string is unrecognised, so callers can flag a
+    UNIT_UNRECOGNISED warning rather than silently comparing wrong numbers.
+    """
+    if unit is None:
+        return value  # assume already normalised / caller's responsibility
+    key = unit.strip().lower()
+    factor = _AREA_TO_SQM.get(key)
+    if factor is None:
+        return None
+    return value * factor
+
+
 FIELD_WEIGHTS = {
     "owner_name": 0.35,
     "survey_no": 0.35,
@@ -27,7 +80,7 @@ def _similarity(extracted_value, authoritative_value, tolerance: float) -> float
 def _confidence_status(score: float) -> str:
     if score >= 0.90:
         return "MATCH"
-    if score >= 0.70:
+    if score >= 0.88:
         return "LOW_CONFIDENCE"
     return "MISMATCH"
 
@@ -61,7 +114,14 @@ def validate_field_format(field_name: str, value) -> Optional[str]:
     return None
 
 
-def compare_field(field_name: str, extracted_value, authoritative_value, tolerance: float = 0.0) -> dict:
+def compare_field(
+    field_name: str,
+    extracted_value,
+    authoritative_value,
+    tolerance: float = 0.0,
+    extracted_unit: Optional[str] = None,
+    authoritative_unit: Optional[str] = None,
+) -> dict:
     """
     Compares a single extracted field against its authoritative counterpart,
     and separately checks the field's own standalone validity.
@@ -114,10 +174,26 @@ def compare_field(field_name: str, extracted_value, authoritative_value, toleran
             "issue": None
         }
 
-    confidence_score = _similarity(extracted_value, authoritative_value, tolerance)
+    # For area fields, normalise both values to square metres so that
+    # "2.5 Acres" and "10117 sqm" compare correctly.
+    cmp_extracted = extracted_value
+    cmp_authoritative = authoritative_value
+    unit_warning = None
+    if field_name == "area" and isinstance(extracted_value, (int, float)):
+        norm_ex = normalise_area_sqm(float(extracted_value), extracted_unit)
+        norm_au = normalise_area_sqm(float(authoritative_value), authoritative_unit) if isinstance(authoritative_value, (int, float)) else None
+        if norm_ex is None:
+            unit_warning = f"AREA_UNIT_UNRECOGNISED:{extracted_unit}"
+        elif norm_au is None and authoritative_unit:
+            unit_warning = f"AREA_UNIT_UNRECOGNISED:{authoritative_unit}"
+        else:
+            cmp_extracted = norm_ex
+            cmp_authoritative = norm_au if norm_au is not None else authoritative_value
+
+    confidence_score = _similarity(cmp_extracted, cmp_authoritative, tolerance)
     field_status = _confidence_status(confidence_score)
 
-    return {
+    result = {
         "field": field_name,
         "extracted": extracted_value,
         "authoritative": authoritative_value,
@@ -126,8 +202,12 @@ def compare_field(field_name: str, extracted_value, authoritative_value, toleran
         "confidence_score": round(confidence_score, 4),
         "field_status": field_status,
         "status": "VERIFIED" if field_status == "MATCH" else "MISMATCH",
-        "issue": None
+        "issue": unit_warning,
     }
+    if field_name == "area" and extracted_unit:
+        result["extracted_unit"] = extracted_unit
+        result["authoritative_unit"] = authoritative_unit
+    return result
 
 
 def calculate_overall_confidence(field_results: list, weights: Optional[dict] = None) -> float:
@@ -275,9 +355,11 @@ def run_additional_business_rules(
             if parsed and parsed > today:
                 flags.append(f"FUTURE_DATED_{label}")
 
+    # Area unit normalisation — convert both values to square metres before
+    # comparing so that e.g. "2.5 Acres" vs "10117 sqm" is NOT a mismatch.
     if extracted_area_unit and authoritative_area_unit:
         if extracted_area_unit.strip().lower() != authoritative_area_unit.strip().lower():
-            flags.append("AREA_UNIT_MISMATCH")
+            flags.append("AREA_UNIT_DIFFERENCE_DETECTED")  # informational, not blocking
 
     if claimed_previous_owner and last_mutation_new_owner:
         if claimed_previous_owner.strip().lower() != last_mutation_new_owner.strip().lower():
