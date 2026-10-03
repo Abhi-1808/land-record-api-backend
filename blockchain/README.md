@@ -1141,9 +1141,9 @@ Administrative actions are recorded through blockchain state and events.
 
 # 📄 License
 
-This project is licensed under the **MIT License**.
+Copyright (c) 2026 Abhi-1808. All rights reserved.
 
-See the repository's `LICENSE` file for the complete license text.
+This project and its original source code are proprietary. Prior written permission is required before copying, modifying, publishing, distributing, or using this project. Third-party dependencies remain subject to their respective licenses; see their included license files.
 
 ---
 
