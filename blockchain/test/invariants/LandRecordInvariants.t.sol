@@ -15,7 +15,7 @@ contract LandRecordHandler is Test {
 
     constructor(LandRecord _target) {
         targetContract = _target;
-        
+
         // Grant REGISTRAR_ROLE to our registrar address
         vm.prank(address(this));
         try targetContract.grantRole(REGISTRAR_ROLE, registrar) {} catch {}
