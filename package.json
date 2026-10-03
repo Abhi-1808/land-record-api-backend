@@ -1,0 +1,35 @@
+{
+  "name": "land-record-registry",
+  "version": "2.0.0",
+  "description": "Enterprise Land Record Registry on Hardhat 3, Viem, and OpenZeppelin 5",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
+    "interact:local": "hardhat run scripts/interact.ts --network localhost",
+    "node": "hardhat node",
+    "zk:demo": "node scripts/zk-demo.mjs"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^4.0.15",
+    "@nomicfoundation/hardhat-network-helpers": "^3.0.11",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.7",
+    "@openzeppelin/contracts": "^5.6.1",
+    "@types/chai": "^4.3.16",
+    "@types/node": "^22.0.0",
+    "chai": "^4.4.1",
+    "circom2": "^0.2.23",
+    "circomlib": "^2.0.5",
+    "circomlibjs": "^0.1.7",
+    "ethers": "^6.17.0",
+    "hardhat": "^3.0.0",
+    "snarkjs": "^0.7.6",
+    "typescript": "^5.4.5",
+    "viem": "^2.21.0"
+  }
+}
