@@ -1,0 +1,14 @@
+[profile.default]
+src = "contracts"
+out = "out"
+test = "test"
+script = "script"
+solc_version = "0.8.20"
+optimizer = true
+optimizer_runs = 200
+libs = ["node_modules", "lib"]
+
+[invariant]
+runs = 1000
+depth = 100
+fail_on_revert = false

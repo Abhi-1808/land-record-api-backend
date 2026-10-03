@@ -1,0 +1,52 @@
+name: ZK proof validation
+
+on:
+  push:
+    paths:
+      - "zk/**"
+      - "scripts/zk-demo.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/zk-proof.yml"
+  pull_request:
+    paths:
+      - "zk/**"
+      - "scripts/zk-demo.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/zk-proof.yml"
+  workflow_dispatch:
+
+jobs:
+  groth16-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate and verify Groth16 proof
+        run: npm run zk:demo
+
+      - name: Export Solidity verifier
+        run: npx snarkjs zkey export solidityverifier zk/build/ownership_final.zkey zk/build/OwnershipVerifier.sol
+
+      - name: Upload ZK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ownership-zk-artifacts
+          path: |
+            zk/build/ownership_final.zkey
+            zk/build/verification_key.json
+            zk/build/OwnershipVerifier.sol
+            zk/build/ownership.r1cs
+            zk/build/ownership_js/ownership.wasm

@@ -1,0 +1,17 @@
+node_modules/
+artifacts/
+cache/
+coverage/
+coverage.json
+typechain/
+typechain-types/
+.env
+.env.*
+ds_store
+node_modules/
+cache/
+artifacts/
+out/
+.env
+deployment.json
+zk/build/

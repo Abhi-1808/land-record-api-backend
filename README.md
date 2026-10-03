@@ -1,96 +1,114 @@
-# Land Record API
+# Land Record Platform
 
-FastAPI backend for land-record verification, document ingestion, OCR-assisted field extraction, MongoDB persistence, Cloudinary storage, and blockchain anchoring.
+Integrated land-record verification platform combining a FastAPI backend with the LandRecord Solidity registry.
 
-## What It Does
+## Architecture
 
-- Validates PDF, JPEG, and PNG uploads with size and magic-byte checks.
-- Computes a SHA-256 document hash and registers it on `LandRecord.sol`.
-- Runs rule-based verification and records an audit trail.
-- Rejects duplicate documents and returns the original anchor transaction.
-- Issues and verifies land-record credentials.
-- Uses MongoDB when configured and an in-memory fallback for local development.
+```text
+Document upload
+	|
+	v
+FastAPI backend ---- MongoDB / Cloudinary (off-chain data)
+	|
+	+---- SHA-256 document hash
+	|
+	v
+LandRecord.sol ---- immutable parcel versions and audit history
+```
 
-The API stores documents off-chain. The blockchain stores the document hash and metadata URI, not the original land document.
+The original document remains off-chain. The blockchain stores its hash and metadata URI so the document can be independently verified.
+
+Repository layout:
+
+```text
+.
+├── main.py, verification.py, database.py  # FastAPI backend
+├── requirements.txt                       # Python dependencies
+├── blockchain/                            # Hardhat, Solidity, deployment scripts
+└── .gitmodules                            # forge-std submodule declaration
+```
 
 ## Requirements
 
 - Python 3.10 or newer
+- Node.js 20 or newer and npm
 - MongoDB for persistent data
-- A deployed LandRecord contract and reachable EVM RPC for `/api/upload`
-- Poppler and EasyOCR for full PDF OCR; without them, the API uses its text fallback
+- Poppler and EasyOCR for full PDF OCR; otherwise the API uses its fallback parser
 
-## Local Setup
+## First-Time Setup
+
+From the repository root:
 
 ```powershell
+git submodule update --init --recursive
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 Copy-Item .env.example .env
+Set-Location blockchain
+npm ci
 ```
 
-Set the values in `.env` before using external services:
+Set the values in `.env`. For local Hardhat, use the registrar private key from your local node only; never commit it:
 
 ```text
 MONGODB_URI=mongodb://localhost:27017/land_record_db
 BLOCKCHAIN_RPC_URL=http://127.0.0.1:8545
-BLOCKCHAIN_PRIVATE_KEY=<registrar-key>
-CONTRACT_ADDRESS=<deployed-contract-address>
+BLOCKCHAIN_PRIVATE_KEY=<local-registrar-key>
+CONTRACT_ADDRESS=<written-by-deploy-script>
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 STORAGE_BASE_URL=https://storage.example/uploads
-```
-
-Cloudinary variables are required only by the storage helper:
-
-```text
 CLOUDINARY_CLOUD_NAME=<cloud-name>
 CLOUDINARY_API_KEY=<api-key>
 CLOUDINARY_API_SECRET=<api-secret>
 ```
 
-Start the API:
+## Run Locally
+
+Use separate terminals from the repository root.
+
+Terminal 1, start the local chain:
+
+```powershell
+Set-Location blockchain
+npm run node
+```
+
+Terminal 2, deploy and export the contract configuration:
+
+```powershell
+Set-Location blockchain
+npm run deploy:local
+```
+
+Terminal 3, start the API:
 
 ```powershell
 python -m uvicorn main:app --reload --port 8000
 ```
 
-The health endpoint is `GET http://127.0.0.1:8000/`.
+Health check: `GET http://127.0.0.1:8000/`.
 
-## Main Endpoints
+## Tests
 
-| Endpoint | Purpose |
-| --- | --- |
-| `GET /` | Health check |
-| `POST /api/verify` | Run rule-based verification |
-| `GET /api/cases` | List human-review cases |
-| `POST /api/upload` | Validate, verify, and anchor a document |
-| `POST /api/credentials/issue` | Issue a compatibility credential |
-| `POST /api/credentials/verify` | Verify a compatibility credential |
-| `POST /api/v1/credentials/issue` | Issue a case-based Ed25519 credential |
-| `POST /api/v1/credentials/verify` | Verify a case-based credential |
-
-`/api/upload` requires both MongoDB and blockchain connectivity. If blockchain registration fails, it returns `502` rather than fabricating a transaction hash.
-
-## Testing
-
-Static checks:
+Blockchain tests:
 
 ```powershell
-python -m compileall -q .
-python -m pip check
+Set-Location blockchain
+npm test
 ```
 
-Full integration suite:
+Backend integration tests require MongoDB, the API on port `8000`, and Hardhat on port `8545`:
 
 ```powershell
 python run_all_tests.py
 ```
 
-The integration suite expects the API on port `8000`, an EVM RPC on port `8545`, and MongoDB. It covers verification rules, upload anchoring, duplicate detection, credentials, and contract reads.
+The verified local baseline is 79 blockchain tests and 23 backend integration tests.
 
-## Security and Scope
+## Production Notes
 
-This is a prototype and does not establish legal ownership or replace an official land registry. Before production use, add authenticated users, authorization for administrative routes, rate limiting, secret management, RPC redundancy, secure document storage, monitoring, and an independent smart-contract review.
+Before production use, add authenticated users, authorization for administrative actions, rate limiting, secret management, RPC redundancy, secure document storage, monitoring, and an independent smart-contract review. This prototype does not establish legal ownership or replace an official land registry.
 
 ## Copyright and Permission
 
